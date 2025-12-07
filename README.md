@@ -161,7 +161,7 @@ Pilih opsi "2" (Visible area only) saat screenshot, dan pastikan bagian penting 
 
 ## 🛡️ Keamanan
 
-File-file sensitif berikut **TIDAK** akan diupload ke GitHub (sudah ada di `.gitignore`):
+File-file sensitif berikut sudah ada di `.gitignore`):
 - `config.ini` - Username/password Shopee
 - `credentials.json` - Google API credentials
 - `token.json` - Google access token
