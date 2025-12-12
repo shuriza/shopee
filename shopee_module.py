@@ -47,12 +47,13 @@ class ShopeeAutomation:
                     '--start-maximized',
                     '--disable-blink-features=AutomationControlled'
                 ],
-                viewport={'width': 1920, 'height': 1080},
+                viewport=None,  # None = responsive, bisa di-resize bebas
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             )
             self.page = self.browser.pages[0] if self.browser.pages else self.browser.new_page()
             print("✓ Browser started with saved session")
             print("✓ Login state akan disimpan untuk run berikutnya")
+            print("✓ Browser responsive - bisa di-resize")
         except Exception as e:
             print(f"✗ Error starting browser: {e}")
             raise
@@ -241,8 +242,17 @@ class ShopeeAutomation:
     
     def close_browser(self):
         """Close the browser"""
-        if self.browser:
-            self.browser.close()
-        if self.playwright:
-            self.playwright.stop()
-        print("\n✓ Browser closed")
+        try:
+            if self.browser:
+                self.browser.close()
+            if self.playwright:
+                self.playwright.stop()
+            print("\n✓ Browser closed")
+        except Exception as e:
+            # Browser might already be closed manually
+            print("\n✓ Browser already closed")
+            if self.playwright:
+                try:
+                    self.playwright.stop()
+                except:
+                    pass
