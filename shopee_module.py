@@ -5,6 +5,7 @@ Handles login, order extraction, and chat screenshot capture
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 import time
 import os
+import re
 from datetime import datetime
 
 class ShopeeAutomation:
@@ -124,9 +125,12 @@ class ShopeeAutomation:
             input("Tekan Enter setelah login berhasil...")
             return True
     
-    def get_orders_to_ship(self):
+    def get_orders_to_ship(self, auto_detect=True):
         """
         Get list of orders with status 'Perlu Dikirim' (Ready to Ship)
+        
+        Args:
+            auto_detect: Try to automatically extract order numbers from page (default: True)
         
         Returns:
             list: List of order numbers
@@ -145,15 +149,43 @@ class ShopeeAutomation:
             print(f"✓ Berhasil akses halaman pesanan")
             print(f"Current URL: {self.page.url}")
             
-            # Ask user to manually provide order numbers since structure may vary
+            order_numbers = []
+            
+            # Try auto-detection if enabled
+            if auto_detect:
+                print("\n🔍 Attempting to auto-detect order numbers from page...")
+                print("(This may take a few seconds...)\n")
+                order_numbers = self._auto_detect_orders()
+                
+                if order_numbers:
+                    print(f"\n✅ Successfully auto-detected {len(order_numbers)} pesanan:")
+                    # Show first 10 orders
+                    for i, order in enumerate(order_numbers[:10], 1):
+                        print(f"  {i}. {order}")
+                    if len(order_numbers) > 10:
+                        print(f"  ... and {len(order_numbers) - 10} more orders")
+                    
+                    # Confirmation
+                    print("\n" + "="*70)
+                    confirm = input("✓ Use detected orders? (y/n) [default: y]: ").strip().lower() or 'y'
+                    if confirm == 'y':
+                        print(f"✓ Using {len(order_numbers)} auto-detected orders")
+                        return order_numbers
+                    else:
+                        print("⚠ Auto-detection cancelled, switching to manual input...")
+                        order_numbers = []
+                else:
+                    print("⚠ Auto-detection failed or no orders found.")
+                    print("⚠ Switching to manual input mode...\n")
+            
+            # Manual input fallback
             print("\n" + "="*70)
-            print("INPUT NOMOR PESANAN")
+            print("INPUT NOMOR PESANAN (MANUAL)")
             print("="*70)
             print("\nSilakan salin nomor pesanan dari halaman Shopee")
             print("dan paste di sini (satu nomor per baris).")
             print("Tekan Enter dua kali (kosong) jika sudah selesai.\n")
             
-            order_numbers = []
             while True:
                 order = input("Nomor pesanan: ").strip()
                 if not order:
@@ -178,6 +210,145 @@ class ShopeeAutomation:
                     break
                 order_numbers.append(order)
             return order_numbers
+    
+    def _auto_detect_orders(self):
+        """
+        Auto-detect order numbers from Shopee 'Perlu Dikirim' page.
+        Uses multiple strategies to find order numbers.
+        
+        Returns:
+            list: List of detected order numbers (unique), or empty list if detection fails
+        """
+        order_numbers = []
+        
+        try:
+            # Wait for dynamic content to load
+            time.sleep(2)
+            
+            print("  Strategy 1: Searching for order elements...")
+            
+            # Strategy 1: CSS Selectors for common Shopee order patterns
+            selectors = [
+                # Try various common selectors
+                'a[href*="/portal/sale/"]',  # Order detail links
+                'div[class*="order"]',       # Order containers
+                'span[class*="order"]',      # Order number spans
+                '[data-order-id]',           # Data attributes
+                'td', 'div', 'span', 'a'     # Fallback to common elements
+            ]
+            
+            for selector in selectors:
+                try:
+                    elements = self.page.query_selector_all(selector)
+                    if not elements:
+                        continue
+                    
+                    for element in elements:
+                        try:
+                            # Try to get text content
+                            text = element.inner_text().strip()
+                            
+                            # Also check href for order numbers
+                            if element.tag_name.lower() == 'a':
+                                href = element.get_attribute('href') or ''
+                                # Extract from URL patterns
+                                url_matches = re.findall(r'\b\d{6}[A-Z0-9]{8,20}\b', href)
+                                for match in url_matches:
+                                    if match not in order_numbers:
+                                        order_numbers.append(match)
+                            
+                            # Validate Shopee order format: 6 digits (YYMMDD) + alphanumeric
+                            if len(text) >= 10 and len(text) <= 30:
+                                # Check if starts with 6 digits
+                                if text[:6].isdigit():
+                                    # Clean text (remove whitespace, special chars)
+                                    cleaned = text.strip().replace(' ', '').replace('\n', '')
+                                    # Final validation
+                                    if re.match(r'^\d{6}[A-Z0-9]+$', cleaned, re.IGNORECASE):
+                                        if cleaned not in order_numbers:
+                                            order_numbers.append(cleaned.upper())
+                        except:
+                            continue
+                    
+                    if order_numbers:
+                        print(f"  ✓ Found {len(order_numbers)} orders using selector: {selector}")
+                        break
+                        
+                except Exception as e:
+                    continue
+            
+            # Strategy 2: Page text analysis with regex
+            if not order_numbers:
+                print("  Strategy 2: Analyzing page text with regex...")
+                try:
+                    page_text = self.page.inner_text('body')
+                    # Pattern: 6 digits + 8-20 alphanumeric characters
+                    pattern = r'\b\d{6}[A-Z0-9]{8,20}\b'
+                    matches = re.findall(pattern, page_text, re.IGNORECASE)
+                    
+                    for match in matches:
+                        cleaned = match.upper()
+                        if cleaned not in order_numbers:
+                            order_numbers.append(cleaned)
+                    
+                    if order_numbers:
+                        print(f"  ✓ Found {len(order_numbers)} orders via text analysis")
+                        
+                except Exception as e:
+                    print(f"  ✗ Text analysis failed: {e}")
+            
+            # Strategy 3: Scroll and load more if pagination exists
+            if order_numbers:
+                print("  Strategy 3: Checking for pagination...")
+                initial_count = len(order_numbers)
+                
+                try:
+                    # Try to scroll to bottom to trigger lazy loading
+                    self.page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
+                    time.sleep(2)
+                    
+                    # Check for "next page" or "load more" buttons
+                    next_buttons = self.page.query_selector_all('button:has-text("Next"), button:has-text("Selanjutnya"), a:has-text("Next")')
+                    if next_buttons:
+                        print(f"  ℹ Found pagination controls, but skipping for safety")
+                        print(f"  ℹ Showing orders from first page only")
+                    
+                except Exception as e:
+                    pass
+            
+            # Remove duplicates while preserving order
+            order_numbers = list(dict.fromkeys(order_numbers))
+            
+            # Debug: Save screenshot and HTML if detection returns results
+            if order_numbers:
+                try:
+                    self.page.screenshot(path='debug_orders_detected.png')
+                    print(f"  📸 Debug screenshot saved: debug_orders_detected.png")
+                except:
+                    pass
+            else:
+                # Save debug info if failed
+                try:
+                    self.page.screenshot(path='debug_orders_page.png')
+                    with open('debug_orders_page.html', 'w', encoding='utf-8') as f:
+                        f.write(self.page.content())
+                    print(f"  📸 Debug files saved for troubleshooting:")
+                    print(f"     - debug_orders_page.png")
+                    print(f"     - debug_orders_page.html")
+                except:
+                    pass
+            
+            return order_numbers
+            
+        except Exception as e:
+            print(f"  ✗ Auto-detection error: {e}")
+            # Save debug screenshot on error
+            try:
+                self.page.screenshot(path='debug_error.png')
+                print(f"  📸 Error screenshot saved: debug_error.png")
+            except:
+                pass
+            return []
     
     def take_chat_screenshot(self, order_number, output_folder='screenshots'):
         """

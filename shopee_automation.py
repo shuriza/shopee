@@ -449,9 +449,23 @@ def main():
             print("✗ Login failed. Aborting.")
             return
         
-        # Step 4: Get orders with batch input
+        # Step 4: Get orders (auto-detect or batch input)
         print("\n[4/5] 📦 Getting orders...")
-        order_numbers = get_batch_orders()
+        
+        # Check auto-detect setting
+        auto_detect = config.getboolean('AUTOMATION', 'AUTO_DETECT_ORDERS', fallback=True)
+        
+        # First try auto-detect from Shopee page if enabled
+        if auto_detect:
+            print("ℹ Auto-detect enabled (can be disabled in config.ini)")
+            order_numbers = shopee.get_orders_to_ship(auto_detect=True)
+        else:
+            print("ℹ Auto-detect disabled, using manual/batch input")
+            order_numbers = []
+        
+        # If auto-detect returned nothing, use batch input
+        if not order_numbers:
+            order_numbers = get_batch_orders()
         
         if not order_numbers:
             print("No orders to process. Exiting.")

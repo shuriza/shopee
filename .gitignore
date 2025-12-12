@@ -9,6 +9,10 @@ token.json
 processed_orders.json
 failed_orders.txt
 
+# Ignore debug files
+debug_*.png
+debug_*.html
+
 # Ignore Python virtual environment
 venv/
 *.pyc
