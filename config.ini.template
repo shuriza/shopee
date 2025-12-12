@@ -1,6 +1,7 @@
 [SHOPEE]
 USERNAME=your_shopee_username
 PASSWORD=your_shopee_password
+CHROME_PROFILE=Default
 
 [GOOGLE_DRIVE]
 # Path to your Google Drive API credentials file (credentials.json)
