@@ -5,6 +5,10 @@ client_secret_*.json
 token.json
 *.xlsx
 
+# Ignore checkpoint and logs
+processed_orders.json
+failed_orders.txt
+
 # Ignore Python virtual environment
 venv/
 *.pyc
