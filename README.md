@@ -82,7 +82,34 @@ FOLDER_ID=your_google_drive_folder_id
 
 ## 📖 Cara Penggunaan
 
+### 🚀 Quick Start (Paling Mudah)
+
+**Tinggal double-click salah satu file:**
+- **`run_automation.bat`** (Windows Batch - Recommended)
+- **`run_automation.ps1`** (PowerShell Script)
+
+File ini akan otomatis:
+1. Masuk ke folder yang benar
+2. Aktifkan virtual environment
+3. Jalankan automation
+4. Pause di akhir untuk baca summary
+
+### 🔧 Manual Run (Advanced)
+
+**Via Command Line:**
+```bash
+.\venv\Scripts\python.exe shopee_automation.py
+```
+
+**Atau buat shortcut di Desktop:**
+1. Klik kanan di Desktop → New → Shortcut
+2. Target: `C:\shuriza\shopee\venv\Scripts\python.exe C:\shuriza\shopee\shopee_automation.py`
+3. Start in: `C:\shuriza\shopee`
+4. Name: `Shopee Automation`
+
 ### Run Pertama Kali (Otorisasi)
+
+Double-click `run_automation.bat` atau jalankan manual:
 
 ```bash
 .\venv\Scripts\python.exe shopee_automation.py
@@ -96,6 +123,8 @@ Pada run pertama:
 5. File `token.json` akan dibuat (jangan dihapus!)
 
 ### Run Berikutnya (Otomatis)
+
+**Tinggal double-click `run_automation.bat`** atau manual:
 
 ```bash
 .\venv\Scripts\python.exe shopee_automation.py
@@ -155,9 +184,12 @@ Jika proses terputus (error, internet mati, Ctrl+C):
 
 ```
 shopee/
-├── shopee_automation.py       # Main script (ENHANCED)
+├── run_automation.bat          # 🆕 Double-click to run (Batch)
+├── run_automation.ps1          # 🆕 Double-click to run (PowerShell)
+├── shopee_automation.py        # Main script (ENHANCED)
 ├── shopee_module.py            # Shopee automation module
 ├── test_functions.py           # Testing script
+├── test_validation.py          # 🆕 Validation test suite
 ├── config.ini                  # Konfigurasi (tidak diupload)
 ├── credentials.json            # Google API credentials (tidak diupload)
 ├── token.json                  # Google token (tidak diupload)
