@@ -356,6 +356,15 @@ def create_excel_report(order_data, output_file='shopee_report.xlsx'):
             ws[f'A{next_row}'] = current_no  # Sequential number
             ws[f'B{next_row}'] = data['order_number']
             ws[f'C{next_row}'] = data['gdrive_link']
+            
+            # Set alignment for new data rows
+            ws[f'A{next_row}'].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+            ws[f'B{next_row}'].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+            ws[f'C{next_row}'].alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
+            
+            # Set row height for better visibility
+            ws.row_dimensions[next_row].height = 30
+            
             next_row += 1
             current_no += 1
         
@@ -381,14 +390,23 @@ def create_excel_report(order_data, output_file='shopee_report.xlsx'):
             ws[f'A{idx}'] = idx - 1  # Sequential number starting from 1
             ws[f'B{idx}'] = data['order_number']
             ws[f'C{idx}'] = data['gdrive_link']
+            
+            # Set alignment for data rows
+            ws[f'A{idx}'].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+            ws[f'B{idx}'].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+            ws[f'C{idx}'].alignment = openpyxl.styles.Alignment(wrap_text=True, vertical='top')
         
-        # Adjust column widths
-        ws.column_dimensions['A'].width = 5
-        ws.column_dimensions['B'].width = 20
-        ws.column_dimensions['C'].width = 100
+        # Adjust column widths for better visibility
+        ws.column_dimensions['A'].width = 6
+        ws.column_dimensions['B'].width = 25
+        ws.column_dimensions['C'].width = 120
         
-        # Set row height for header
-        ws.row_dimensions[1].height = 80
+        # Set row height for header (taller for long instruction text)
+        ws.row_dimensions[1].height = 100
+        
+        # Set row height for data rows
+        for row_num in range(2, len(order_data) + 2):
+            ws.row_dimensions[row_num].height = 30
     
     wb.save(output_file)
     print(f"✓ Excel report created/updated: {output_file}")
